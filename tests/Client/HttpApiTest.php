@@ -12,6 +12,9 @@ use Zend\Http\Request;
 use Zend\Http\Response;
 use Matryoshka\Service\Api\Client\HttpApi;
 
+/**
+ * Class HttpApiTest
+ */
 class HttpApiTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -160,8 +163,10 @@ class HttpApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @param array $params
      * @param $contentResponse
-     * @dataProvider providerServiceResponse
+     * @param $responseContentType
+     * @param $typeResponse
      */
     public function testHttpMethod(array $params, $contentResponse, $responseContentType, $typeResponse)
     {
@@ -204,13 +209,13 @@ class HttpApiTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($api->getResponseDecoder()->getLastPayload(), $api->getLastResponseData());
     }
 
-
     /**
      * @param array $params
-     * @param string $responseContent
-     * @param string $format
+     * @param $responseContent
+     * @param $responseContentType
+     * @param $responseStatusCode
+     * @param $format
      * @param string $exceptionType
-     * @dataProvider providerServiceRequestResponseException
      */
     public function testHttpMethodRequestResponseException(
         array $params,
@@ -256,5 +261,4 @@ class HttpApiTest extends \PHPUnit_Framework_TestCase
         $this->setExpectedException('\Matryoshka\Service\Api\Exception\InvalidFormatException');
         $this->httpApi->prepareRequest('post', null, ['foo' => 'baz']);
     }
-
 }

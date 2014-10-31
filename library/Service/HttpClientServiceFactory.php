@@ -21,7 +21,7 @@ class HttpClientServiceFactory implements FactoryInterface
     /**
      * @var string
      */
-    protected $configKey = 'matryoshka-rest-httpclient';
+    protected $configKey = 'matryoshka-httpclient';
 
     /**
      * Create a http client service

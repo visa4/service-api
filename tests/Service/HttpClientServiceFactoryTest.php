@@ -30,7 +30,7 @@ class HttpClientServiceFactoryTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         $config = [
-            'matryoshka-rest-httpclient' => $this->testOptions + [
+            'matryoshka-httpclient' => $this->testOptions + [
                     'uri' => 'http://example.net',
                 ],
         ];

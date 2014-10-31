@@ -9,7 +9,6 @@
 namespace Matryoshka\Service\Api\Profiler;
 
 use Zend\Http\Client;
-use Zend\Http\Request;
 use Zend\Http\Response;
 
 /**
@@ -57,8 +56,8 @@ class Profiler implements ProfilerInterface
         $current['end'] = microtime(true);
         $current['elapse'] = $current['end'] - $current['start'];
 
-        $current['request']  = (string) $target->getLastRawRequest();
-        $current['response'] = (string) $target->getLastRawResponse();
+        $current['request'] = (string)$target->getLastRawRequest();
+        $current['response'] = (string)$target->getLastRawResponse();
 
         $this->currentIndex++;
         return $this;

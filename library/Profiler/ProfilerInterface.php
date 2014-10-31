@@ -9,6 +9,7 @@
 namespace Matryoshka\Service\Api\Profiler;
 
 use Zend\Http\Client;
+
 /**
  * Interface HttpProfilerInterface
  *

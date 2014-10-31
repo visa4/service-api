@@ -8,13 +8,15 @@
  */
 namespace Matryoshka\Service\Api\Response\Decoder;
 
+use Matryoshka\Service\Api\Exception;
+use Zend\Http\Header\Accept;
 use Zend\Http\Response;
 use Zend\Json\Json;
 use Zend\Stdlib\ArrayUtils;
-use Matryoshka\Service\Api\Exception;
-use ZendXml\Security;
-use Zend\Http\Header\Accept;
 
+/**
+ * Class Hal
+ */
 class Hal implements DecoderInterface
 {
 
@@ -69,7 +71,7 @@ class Hal implements DecoderInterface
 
         $this->lastPayload = $payload;
 
-        if  ($contentType->match('application/hal+*')) {
+        if ($contentType->match('application/hal+*')) {
             return $this->decodeHal($payload);
         }
         //else
@@ -101,6 +103,4 @@ class Hal implements DecoderInterface
 
         return $data;
     }
-
-
 }

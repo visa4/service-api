@@ -8,9 +8,12 @@
  */
 namespace Matryoshka\Service\Api\Response\Decoder;
 
-use Zend\Http\Response;
 use Zend\Http\Header\Accept;
+use Zend\Http\Response;
 
+/**
+ * Interface DecoderInterface
+ */
 interface DecoderInterface
 {
     /**

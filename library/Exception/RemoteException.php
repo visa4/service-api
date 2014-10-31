@@ -38,6 +38,10 @@ class RemoteException extends BaseException implements ExceptionInterface
         return $this->details;
     }
 
+    /**
+     * @param array $stack
+     * @return null|RemoteException
+     */
     public static function factory(array $stack)
     {
         if (count($stack) > 0) {

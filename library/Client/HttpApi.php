@@ -18,6 +18,7 @@ use Zend\Http\Client;
 use Zend\Json\Json;
 use Zend\Http\Header\ContentType;
 use Zend\Http\Response;
+
 /**
  * Class HttpApi
  */
@@ -26,7 +27,7 @@ class HttpApi implements ProfilerAwareInterface
     use ProfilerAwareTrait;
 
     const FORMAT_JSON = 'json';
-    const FORMAT_XML  = 'xml';
+    const FORMAT_XML = 'xml';
 
     /**
      * @var Client
@@ -50,7 +51,7 @@ class HttpApi implements ProfilerAwareInterface
 
     /**
      * @var string
-    */
+     */
     protected $requestFormat = self::FORMAT_JSON;
 
     /**
@@ -73,12 +74,11 @@ class HttpApi implements ProfilerAwareInterface
         $this->baseRequest = $baseRequest ? $baseRequest : $this->httpClient->getRequest();
     }
 
-
     /**
-     * @param string $method
-     * @param string $id
-     * @param array $query
+     * @param $method
+     * @param null $relativePath
      * @param array $data
+     * @param array $query
      * @return Request
      */
     public function prepareRequest($method, $relativePath = null, array $data = [], array $query = [])
@@ -88,7 +88,6 @@ class HttpApi implements ProfilerAwareInterface
         if ($relativePath) {
             $request->getUri()->setPath($request->getUri()->getPath() . $relativePath);
         }
-
         $queryParams = $request->getQuery();
         foreach ($query as $name => $value) {
             $queryParams->set($name, $value);
@@ -99,7 +98,7 @@ class HttpApi implements ProfilerAwareInterface
         }
 
         $request->getHeaders()->addHeaderLine('Content-Type', 'application/' . $this->getRequestFormat())
-                              ->addHeader($this->getResponseDecoder()->getAcceptHeader());
+            ->addHeader($this->getResponseDecoder()->getAcceptHeader());
         return $request;
     }
 
@@ -127,10 +126,11 @@ class HttpApi implements ProfilerAwareInterface
 
         $validStatusCodes = $this->getValidStatusCodes();
         $responseStatusCode = $response->getStatusCode();
-        $decodedResponse = (array) $this->getResponseDecoder()->decode($response);
+        $decodedResponse = (array)$this->getResponseDecoder()->decode($response);
 
         if ((empty($validStatusCodes) && $response->isSuccess())
-            || in_array($responseStatusCode, $validStatusCodes)) {
+            || in_array($responseStatusCode, $validStatusCodes)
+        ) {
             return $decodedResponse;
         }
 
@@ -154,10 +154,12 @@ class HttpApi implements ProfilerAwareInterface
                 // TODO: not yet implemented
                 // break;
             default:
-                throw new Exception\InvalidFormatException(sprintf(
-                'The "%s" format is invalid or not supported',
-                $requestFormat
-                ));
+                throw new Exception\InvalidFormatException(
+                    sprintf(
+                        'The "%s" format is invalid or not supported',
+                        $requestFormat
+                    )
+                );
                 break;
         }
 
@@ -165,8 +167,9 @@ class HttpApi implements ProfilerAwareInterface
     }
 
     /**
-     * @param $bodyDecodeResponse
-     * @return Exception\InvalidResponseException
+     * @param array $bodyDecodeResponse
+     * @param Response $response
+     * @return Exception\ApiProblem\DomainException|Exception\InvalidResponseException
      */
     protected function getInvalidResponseException(array $bodyDecodeResponse, Response $response)
     {
@@ -175,30 +178,37 @@ class HttpApi implements ProfilerAwareInterface
         if ($contentType instanceof ContentType && $contentType->match('application/problem+*')) {
 
             $apiProblemDefaults = [
-                'type'      => $response->getReasonPhrase(),
-                'title'     => '',
-                'status'    => $response->getStatusCode(),
-                'detail'    => '',
-                'instance'  => '',
+                'type' => $response->getReasonPhrase(),
+                'title' => '',
+                'status' => $response->getStatusCode(),
+                'detail' => '',
+                'instance' => '',
             ];
 
             $bodyDecodeResponse += $apiProblemDefaults;
 
             //Setup remote exception
-            $remoteExceptionStack = isset($bodyDecodeResponse['exception_stack']) && is_array($bodyDecodeResponse['exception_stack']) ?
-            $bodyDecodeResponse['exception_stack'] : [];
+            $remoteExceptionStack = isset($bodyDecodeResponse['exception_stack']) && is_array(
+                $bodyDecodeResponse['exception_stack']
+            ) ?
+                $bodyDecodeResponse['exception_stack'] : [];
 
-            array_unshift($remoteExceptionStack, [
-                'message' => $bodyDecodeResponse['detail'],
-                'code'    => $bodyDecodeResponse['status'],
-                'trace'   => isset($bodyDecodeResponse['trace']) ? $bodyDecodeResponse['trace'] : null,
-            ]);
+            array_unshift(
+                $remoteExceptionStack,
+                [
+                    'message' => $bodyDecodeResponse['detail'],
+                    'code' => $bodyDecodeResponse['status'],
+                    'trace' => isset($bodyDecodeResponse['trace']) ? $bodyDecodeResponse['trace'] : null,
+                ]
+            );
 
             //Setup exception
             $exception = new Exception\ApiProblem\DomainException(
                 $bodyDecodeResponse['detail'],
                 $bodyDecodeResponse['status'],
-                Exception\RemoteException::factory($remoteExceptionStack) //Set remote ex chain as previous of current ex
+                Exception\RemoteException::factory(
+                    $remoteExceptionStack
+                ) //Set remote ex chain as previous of current ex
             );
             $exception->setType($bodyDecodeResponse['type']);
             $exception->setTitle($bodyDecodeResponse['title']);
@@ -207,14 +217,19 @@ class HttpApi implements ProfilerAwareInterface
             }
             $exception->setAdditionalDetails($bodyDecodeResponse);
         } else {
-            $exception = new Exception\InvalidResponseException($response->getReasonPhrase(), $response->getStatusCode());
+            $exception = new Exception\InvalidResponseException(
+                $response->getReasonPhrase(),
+                $response->getStatusCode()
+            );
             $exception->setResponse($response);
         }
 
         return $exception;
     }
 
-
+    /**
+     * @return DecoderInterface
+     */
     public function getResponseDecoder()
     {
         if (null === $this->responseDecoder) {
@@ -224,6 +239,10 @@ class HttpApi implements ProfilerAwareInterface
         return $this->responseDecoder;
     }
 
+    /**
+     * @param DecoderInterface $decoder
+     * @return $this
+     */
     public function setResponseDecoder(DecoderInterface $decoder)
     {
         $this->responseDecoder = $decoder;
@@ -293,7 +312,7 @@ class HttpApi implements ProfilerAwareInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return Request
      */
     public function getLastRequest()
     {
@@ -301,7 +320,7 @@ class HttpApi implements ProfilerAwareInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return Response
      */
     public function getLastResponse()
     {
@@ -309,7 +328,7 @@ class HttpApi implements ProfilerAwareInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return array|null
      */
     public function getLastResponseData()
     {

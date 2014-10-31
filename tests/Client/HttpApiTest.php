@@ -167,6 +167,7 @@ class HttpApiTest extends \PHPUnit_Framework_TestCase
      * @param $contentResponse
      * @param $responseContentType
      * @param $typeResponse
+     * @dataProvider providerServiceResponse
      */
     public function testHttpMethod(array $params, $contentResponse, $responseContentType, $typeResponse)
     {
@@ -216,6 +217,7 @@ class HttpApiTest extends \PHPUnit_Framework_TestCase
      * @param $responseStatusCode
      * @param $format
      * @param string $exceptionType
+     * @dataProvider providerServiceRequestResponseException
      */
     public function testHttpMethodRequestResponseException(
         array $params,

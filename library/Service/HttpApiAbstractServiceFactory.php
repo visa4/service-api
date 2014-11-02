@@ -91,7 +91,7 @@ class HttpApiAbstractServiceFactory implements AbstractFactoryInterface
     }
 
     /**
-     * Get rest configuration, if any
+     * Get api service configuration, if any
      *
      * @param  ServiceLocatorInterface $serviceLocator
      * @return array

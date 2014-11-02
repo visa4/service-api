@@ -71,6 +71,98 @@ class HalTest extends \PHPUnit_Framework_TestCase
         $response5->getHeaders()->addHeaderLine('Content-Type', 'application/hal+json');
         $result5 = [];
 
+        //Test nested resources
+        $response6 = new Response();
+        $response6->getHeaders()->addHeaderLine('Content-Type', 'application/hal+json');
+        $response6->setContent('{
+  "_links": {
+    "self": {
+      "href": "http://example.com/api/status"
+    },
+    "next": {
+      "href": "http://example.com/api/status?page=2"
+    },
+    "last": {
+      "href": "http://example.com/api/status?page=100"
+    }
+  },
+  "count": 2973,
+  "per_page": 30,
+  "page": 1,
+  "_embedded": {
+    "status": [
+      {
+        "_links": {
+          "self": {
+            "href": "http://example.com/api/status/1347"
+          }
+        },
+        "id": "1347",
+        "timestamp": "2013-02-11 23:33:47",
+        "status": "This is my awesome status update!",
+        "_embedded": {
+          "user": {
+            "_links": {
+              "self": {
+                "href": "http://example.com/api/user/mwop"
+              }
+            },
+            "id": "mwop",
+            "name": "Matthew Weier O\'Phinney",
+            "url": "http://mwop.net"
+          }
+        }
+      }
+    ]
+  }
+}');
+        $result6 = array (
+          0 => array (
+            'id' => '1347',
+            'timestamp' => '2013-02-11 23:33:47',
+            'status' => 'This is my awesome status update!',
+            'user' =>
+            array (
+              'id' => 'mwop',
+              'name' => 'Matthew Weier O\'Phinney',
+              'url' => 'http://mwop.net',
+            ),
+          ),
+        );
+
+        //Test single resource
+        $response7 = new Response();
+        $response7->getHeaders()->addHeaderLine('Content-Type', 'application/hal+json');
+        $response7->setContent('{
+    "_links": {
+        "self": {"href": "http://example.com/api/status/1347"}
+    },
+    "id": "1347",
+    "timestamp": "2013-02-11 23:33:47",
+    "status": "This is my awesome status update!",
+    "_embedded": {
+        "user": {
+            "_links": {
+                "self": {"href": "http://example.com/api/user/mwop"}
+            },
+            "id": "mwop",
+            "name": "Matthew Weier O\'Phinney",
+            "url": "http://mwop.net"
+        }
+    }
+}');
+        $result7 = array (
+          'id' => '1347',
+          'timestamp' => '2013-02-11 23:33:47',
+          'status' => 'This is my awesome status update!',
+          'user' =>
+          array (
+            'id' => 'mwop',
+            'name' => 'Matthew Weier O\'Phinney',
+            'url' => 'http://mwop.net',
+          ),
+        );
+
 
 //         $response3 = new Response();
 //         $response3->setContent('<resource rel="self" href="/" xmlns:ex="http://example.org/rels/">
@@ -101,10 +193,12 @@ class HalTest extends \PHPUnit_Framework_TestCase
 
         return [
             [$response1, $result1],
-            [$response2, $result2],
+            [$response2, $result2, true],
             [$response3, $result3],
             [$response4, $result4],
-            [$response5, $result5],
+            [$response5, $result5, true],
+            [$response6, $result6, true],
+            [$response7, $result7],
         ];
     }
 
@@ -114,10 +208,43 @@ class HalTest extends \PHPUnit_Framework_TestCase
      * @param array $result
      * @dataProvider decoderDataProvider
      */
-    public function testDecode(Response $response, array $result)
+    public function testDecode(Response $response, array $result, $isCollection = false)
     {
+        $this->decoder->setPromoteTopCollection(true);
         $this->assertEquals($result, $this->decoder->decode($response));
         $this->assertEquals(Json::decode($response->getBody(), Json::TYPE_ARRAY), $this->decoder->getLastPayload());
+
+        if ($isCollection && $response->getHeaders()->get('content-type')->match('*/hal+*')) {
+            $this->decoder->setPromoteTopCollection(false);
+            $decoded = $this->decoder->decode($response);
+            $payload = $this->decoder->getLastPayload();
+            $topCollectionName = null;
+            foreach ($decoded as $key => $value) {
+                if (!$topCollectionName && !isset($payload[$key]) && isset($payload['_embedded'][$key])) {
+                    $topCollectionName = $key;
+                } else {
+                    $this->assertEquals($payload[$key], $decoded[$key]);
+                }
+            }
+            if ($topCollectionName) {
+                $this->assertEquals($result, $decoded[$topCollectionName]);
+            }
+        }
+    }
+
+    /**
+     * @expectedException \Matryoshka\Service\Api\Exception\RuntimeException
+     */
+    public function testDecodeShouldThrowExceptionWhenMultipleTopCollections()
+    {
+        $response = new Response();
+        $response->getHeaders()->addHeaderLine('Content-Type', 'application/hal+json');
+        $response->setContent(
+            '{"_embedded":{"collectionOne":[{"foo":"bar"}], "collectionTwo":[{"foo":"baz"}]},"page_count":1,"page_size":10,"total_items":2}'
+        );
+
+        $this->decoder->setPromoteTopCollection(true);
+        $this->decoder->decode($response);
     }
 
     /**
@@ -149,5 +276,12 @@ class HalTest extends \PHPUnit_Framework_TestCase
         $accept = $this->decoder->getAcceptHeader();
         $this->assertInstanceOf('\Zend\Http\Header\Accept', $accept);
         $this->assertTrue((bool)$accept->match('application/json'));
+    }
+
+    public function testGetSetPromoteTopCollection()
+    {
+        $this->assertTrue($this->decoder->getPromoteTopCollection()); //default is true
+        $this->assertSame($this->decoder, $this->decoder->setPromoteTopCollection(false));
+        $this->assertFalse($this->decoder->getPromoteTopCollection());
     }
 }

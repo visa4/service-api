@@ -14,7 +14,7 @@ Add the following to your `composer.json` file:
 ```
 "require": {
     "php": ">=5.4",
-    "matryoshka-model/service-api": "~0.5.0"
+    "matryoshka-model/service-api": "~0.3.0"
 }
 ```
 

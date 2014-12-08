@@ -98,7 +98,60 @@ class HttpApi implements ProfilerAwareInterface
         }
 
         $request->getHeaders()->addHeaderLine('Content-Type', 'application/' . $this->getRequestFormat())
-            ->addHeader($this->getResponseDecoder()->getAcceptHeader());
+                ->addHeader($this->getResponseDecoder()->getAcceptHeader());
+        return $request;
+    }
+
+    /**
+     * Prepare a POST request for uploading files
+     *
+     * The request method will be set to POST and multipart/form-data will be used
+     * as content type, ignoring the current request format.
+     *
+     * $files is treated as:
+     * [
+     *    name => localFilePath,
+     *    ...
+     * ]
+     *
+     * $data will be used for other data data without the filename segment.
+     *
+     * Each localFilePath will be read and sent. Will try to guess the content type using mime_content_type().
+     * By default, the basename of localFilePath will be sent as filename segment, if a 'name' is also present
+     * in $data then the value of $data[name] will be used as filename segment.
+     *
+     *
+     *
+     * @param array $files
+     * @param string $relativePath
+     * @param array $data
+     * @param array $query
+     * @return \Zend\Http\Request
+     */
+    public function prepareFileUploadRequest(array $files, $relativePath = null, array $data = [], array $query = [])
+    {
+        $request = $this->prepareRequest('POST', $relativePath, [], $query);
+        $request->getHeaders()->removeHeader($request->getHeaders()->get('Content-Type'));
+
+        $this->httpClient->setRequest($request);
+
+        foreach ($files as $formName => $filePath) {
+            $this->httpClient->setFileUpload($filePath, $formName);
+
+            if (isset($data[$formName])) {
+                $file = $request->getFiles()->get($filePath, null);
+
+                if ($file) { // If present, override the filename
+                    $file['filename'] = $data[$formName];
+                    $request->getFiles()->set($filePath, $file);
+                }
+
+                unset($data[$formName]);
+            }
+        }
+
+        $request->getPost()->fromArray($data);
+
         return $request;
     }
 

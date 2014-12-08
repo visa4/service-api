@@ -263,4 +263,69 @@ class HttpApiTest extends \PHPUnit_Framework_TestCase
         $this->setExpectedException('\Matryoshka\Service\Api\Exception\InvalidFormatException');
         $this->httpApi->prepareRequest('post', null, ['foo' => 'baz']);
     }
+
+
+    public function testPrepareFileUploadRequest()
+    {
+        $httpClient = $this->getMockBuilder('Zend\Http\Client')
+                            ->disableOriginalConstructor()
+                            ->setMethods(['dispatch', 'getResponse'])
+                            ->getMock();
+
+        $expectedResponse = new Response();
+        $expectedResponse->setContent('{"status":"ok"}');
+        $expectedResponse->getHeaders()->addHeaderLine('Content-Type', 'application/json');
+
+        $httpClient->expects($this->any())
+                    ->method('dispatch')
+                    ->will($this->returnValue($expectedResponse));
+
+        $httpClient->expects($this->any())
+                    ->method('getResponse')
+                    ->will($this->returnValue($expectedResponse));
+
+
+        $api = new HttpApi($httpClient);
+
+        $request = $api->prepareFileUploadRequest([
+               'myfile' => realpath(__DIR__ . '/fileToUpload.txt'),
+            ],
+            'resourcePath',
+            [
+                'foo' => 'bar',
+                'myfile' => 'foo.txt'
+            ],
+            [
+                'test' => 'test'
+            ]
+        );
+        $this->assertInstanceOf('\Zend\Http\Request', $request);
+        $this->assertEquals(
+            $api->getBaseRequest()->getUri()->getPath() . 'resourcePath',
+            $request->getUri()->getPath()
+        );
+
+        $this->assertFalse($request->getHeader('Content-Type', false));
+        $this->assertSame(['test' => 'test'], $request->getQuery()->toArray());
+        $this->assertSame(['foo' => 'bar'], $request->getPost()->toArray());
+
+        $this->assertSame([
+            realpath(__DIR__ . '/fileToUpload.txt') => [
+                'formname' => 'myfile',
+                'filename' => 'foo.txt',
+                'ctype' => 'text/plain; charset=us-ascii',
+                'data' => 'Dummy',
+            ]
+        ], $request->getFiles()->toArray());
+
+
+
+        $response = $api->dispatchRequest($request);
+        $this->assertSame($api->getResponseDecoder()->decode($expectedResponse), $response);
+
+
+        $this->assertSame($request, $api->getLastRequest());
+        $this->assertSame($expectedResponse, $api->getLastResponse());
+        $this->assertSame($api->getResponseDecoder()->getLastPayload(), $api->getLastResponseData());
+    }
 }

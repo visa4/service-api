@@ -43,6 +43,16 @@ class HttpClientServiceFactory implements FactoryInterface
                 unset($clientOptions['uri']);
             }
 
+            if (isset($clientOptions['auth'])) {
+                $auth = $clientOptions['auth'];
+                $client->setAuth(
+                    isset($auth['user'])     ? $auth['user']     : '',
+                    isset($auth['password']) ? $auth['password'] : '',
+                    isset($auth['type'])     ? $auth['type']     : $client::AUTH_BASIC
+                );
+                unset($clientOptions['auth']);
+            }
+
             $client->setOptions($config[$this->configKey]);
         }
 

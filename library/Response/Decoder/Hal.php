@@ -20,7 +20,33 @@ use Zend\Stdlib\ArrayUtils;
 class Hal implements DecoderInterface
 {
 
+    /**
+     * @var array|null
+     */
     protected $lastPayload;
+
+    /**
+     * @var bool
+     */
+    protected $promoteTopCollection = true;
+
+    /**
+     * @return boolean
+     */
+    public function getPromoteTopCollection()
+    {
+        return $this->promoteTopCollection;
+    }
+
+    /**
+     * @param bool $promote
+     * @return $this
+     */
+    public function setPromoteTopCollection($promote)
+    {
+        $this->promoteTopCollection = (bool) $promote;
+        return $this;
+    }
 
     /**
      * {@inheritdoc}
@@ -71,8 +97,8 @@ class Hal implements DecoderInterface
 
         $this->lastPayload = $payload;
 
-        if ($contentType->match('application/hal+*')) {
-            return $this->decodeHal($payload);
+        if ($contentType->match('*/hal+*')) {
+            return $this->extractResourceFromHal($payload, $this->getPromoteTopCollection());
         }
         //else
         return (array) $payload;
@@ -82,7 +108,7 @@ class Hal implements DecoderInterface
      * @param array $data
      * @return array
      */
-    protected function decodeHal(array $data)
+    protected function extractResourceFromHal(array $data, $promoteTopCollection = true)
     {
         if (array_key_exists('_links', $data)) {
             unset($data['_links']);
@@ -90,15 +116,26 @@ class Hal implements DecoderInterface
 
         if (array_key_exists('_embedded', $data)) {
             $embedded = $data['_embedded'];
-            if (ArrayUtils::hasStringKeys($embedded)) {
-                $resourceNode = array_shift($embedded);
-                $data = [];
-                if (ArrayUtils::isList($resourceNode)) {
+            foreach ($embedded as $key => $resourceNode) {
+                if (ArrayUtils::isList($resourceNode, true)) { //assume is a collection of resources
+                    $temp = [];
                     foreach ($resourceNode as $resource) {
-                        $data[] = $this->decodeHal($resource);
+                        $temp[] = $this->extractResourceFromHal($resource, false);
                     }
+                    if ($promoteTopCollection) {
+                        if (count($embedded) > 1) {
+                            throw new Exception\RuntimeException('Cannot promote multiple top collections');
+                        }
+                        $data = $temp;
+                        break;
+                    } else {
+                        $data[$key] = $temp;
+                    }
+                } else { //assume is a single resource
+                    $data[$key] = $this->extractResourceFromHal($resourceNode, false);
                 }
             }
+            unset($data['_embedded']);
         }
 
         return $data;

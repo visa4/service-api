@@ -10,6 +10,7 @@ namespace MatryoshkaServiceApiTest\Service;
 
 use Zend\ServiceManager\Config;
 use Zend\ServiceManager\ServiceManager;
+use Zend\Http\Client;
 
 /**
  * Class HttpClientServiceFactoryTest
@@ -26,12 +27,19 @@ class HttpClientServiceFactoryTest extends \PHPUnit_Framework_TestCase
         'useragent' => 'TestUserAgent',
     ];
 
+    protected $authOptions = [
+        'user'      => 'test',
+        'password'  => 'test',
+        'type'      => Client::AUTH_DIGEST
+    ];
+
 
     public function setUp()
     {
         $config = [
             'matryoshka-httpclient' => $this->testOptions + [
-                    'uri' => 'http://example.net',
+                    'uri'   => 'http://example.net',
+                    'auth'  => $this->authOptions
                 ],
         ];
 
@@ -62,6 +70,15 @@ class HttpClientServiceFactoryTest extends \PHPUnit_Framework_TestCase
         $config = $configProp->getValue($client);
 
         foreach ($this->testOptions as $key => $value) {
+            $this->assertSame($value, $config[$key]);
+        }
+
+        $refl = new \ReflectionClass($client);
+        $configProp = $refl->getProperty('auth');
+        $configProp->setAccessible(true);
+        $config = $configProp->getValue($client);
+
+        foreach ($this->authOptions as $key => $value) {
             $this->assertSame($value, $config[$key]);
         }
 

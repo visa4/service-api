@@ -1,5 +1,5 @@
 {
-    "name": "visa4/service-api",
+    "name": "matryoshka-model/service-api",
     "description": "A set of utilities aimed at consuming HTTP API services",
     "homepage": "http://github.com/matryoshka-model/service-api",
     "license": "BSD-2-Clause",

@@ -32,7 +32,7 @@ class HttpApi implements ProfilerAwareInterface
     /**
      * @var Client
      */
-    protected $httpClient;
+    public $httpClient;
 
     /**
      * @var Request

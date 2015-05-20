@@ -86,7 +86,6 @@ class Hal implements DecoderInterface
              case $contentType->match('*/xml'):
                  $xml = Security::scan($response->getBody());
                  $payload = Json::decode(Json::encode((array) $xml), Json::TYPE_ARRAY);
-                 var_dump(__METHOD__); var_dump($payload); die();
                  break;
 
             default:

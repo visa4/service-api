@@ -13,6 +13,7 @@ use Zend\Http\Header\Accept;
 use Zend\Http\Response;
 use Zend\Json\Json;
 use Zend\Stdlib\ArrayUtils;
+use ZendXml\Security;
 
 /**
  * Class Hal
@@ -81,11 +82,12 @@ class Hal implements DecoderInterface
             case $contentType->match('*/json'):
                 $payload = Json::decode($response->getBody(), Json::TYPE_ARRAY);
                 break;
-                //TODO: xml
-//             case $contentType->match('*/xml'):
-//                 $xml = Security::scan($response->getBody());
-//                 $payload = Json::decode(Json::encode((array) $xml), Json::TYPE_ARRAY);
-//                 break;
+
+             case $contentType->match('*/xml'):
+                 $xml = Security::scan($response->getBody());
+                 $payload = Json::decode(Json::encode((array) $xml), Json::TYPE_ARRAY);
+                 var_dump(__METHOD__); var_dump($payload); die();
+                 break;
 
             default:
                 throw new Exception\InvalidFormatException(sprintf(
